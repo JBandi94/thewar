@@ -1,0 +1,1596 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>اخطيني راني خاطيك</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;700;900&display=swap" rel="stylesheet">
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Tajawal', sans-serif;
+            user-select: none;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow-x: hidden;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 8px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 980px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            max-height: 98vh;
+            height: 100%;
+        }
+
+        h1.game-title {
+            font-size: clamp(1rem, 4vw, 1.6rem);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 6px;
+            color: #ffd700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            flex-shrink: 0;
+        }
+
+        .input-group {
+            margin-bottom: 10px;
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        input[type="text"] {
+            padding: 10px 15px;
+            font-size: 1rem;
+            border-radius: 8px;
+            border: none;
+            outline: none;
+            width: 65%;
+            max-width: 350px;
+            background: #fff;
+            color: #333;
+        }
+
+        .btn-add {
+            padding: 10px 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .btn-add:hover {
+            background: #218838;
+        }
+
+        .counter {
+            font-size: 1.1rem;
+            margin: 5px 0 10px 0;
+            color: #00ffcc;
+            font-weight: bold;
+        }
+
+        .players-list-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            justify-content: center;
+            max-height: 120px;
+            overflow-y: auto;
+            margin-bottom: 12px;
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+        }
+
+        .player-tag {
+            background: #ff4757;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .player-tag .player-avatar-small {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1px solid rgba(255,255,255,0.5);
+        }
+
+        .player-tag span {
+            cursor: pointer;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .multiplier-section {
+            margin: 10px 0;
+        }
+
+        .multiplier-section h3 {
+            font-size: 1rem;
+            margin-bottom: 6px;
+        }
+
+        .multiplier-options {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .radio-label {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border: 2px solid transparent;
+            transition: 0.3s;
+        }
+
+        .radio-label.disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        input[type="radio"] {
+            display: none;
+        }
+
+        input[type="radio"]:checked + .radio-label {
+            background: #ffd700;
+            color: #000;
+            border-color: #fff;
+        }
+
+        .btn-start {
+            margin-top: 10px;
+            padding: 12px 30px;
+            font-size: 1.2rem;
+            font-weight: 900;
+            background: linear-gradient(45deg, #ff4757, #ff6b81);
+            color: white;
+            border: none;
+            border-radius: 40px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(255, 71, 87, 0.4);
+            transition: transform 0.2s;
+        }
+
+        .btn-start:hover {
+            transform: scale(1.03);
+        }
+
+        .btn-start:disabled {
+            background: #888;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        #game-screen {
+            display: none;
+            width: 100%;
+            height: 100%;
+            flex-direction: column;
+        }
+
+        .fixed-header {
+            flex-shrink: 0;
+            width: 100%;
+            margin-bottom: 8px;
+        }
+
+        .turn-indicator {
+            font-size: clamp(0.85rem, 2.8vw, 1.1rem);
+            margin-bottom: 6px;
+            background: rgba(0,0,0,0.5);
+            padding: 6px 10px;
+            border-radius: 8px;
+            border: 1.5px solid #ffd700;
+            color: #00ffcc;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .turn-player-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #ffd700;
+        }
+
+        .status-bar-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+            background: #0f172a;
+            padding: 8px 12px;
+            border-radius: 10px;
+            border: 1px solid #38bdf8;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
+
+        .revealed-select-style {
+            background: #1e293b;
+            color: #38bdf8;
+            font-weight: 900;
+            font-size: clamp(0.8rem, 2.4vw, 0.95rem);
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1.5px solid #38bdf8;
+            outline: none;
+            flex: 1;
+            max-width: 48%;
+            text-align: center;
+            cursor: default;
+        }
+
+        .revealed-select-style option {
+            background: #0f172a;
+            color: #ffffff;
+            font-weight: bold;
+            padding: 8px;
+        }
+
+        .respawn-select-style {
+            background: #ffd700;
+            color: #000;
+            font-weight: 900;
+            font-size: clamp(0.8rem, 2.4vw, 0.95rem);
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1.5px solid #fff;
+            outline: none;
+            cursor: pointer;
+            flex: 1;
+            max-width: 48%;
+            text-align: center;
+        }
+
+        .respawn-select-style option {
+            background: #0f172a;
+            color: #ffffff;
+            font-weight: bold;
+            padding: 8px;
+        }
+
+        .respawn-select-style option.available {
+            color: #2ed573;
+        }
+
+        .respawn-select-style option.unavailable {
+            color: #64748b;
+            font-weight: normal;
+        }
+
+        /* ====== تخطيط الشاشة العريضة: اللعبة يمين، التعليقات يسار ====== */
+        .game-layout-wrapper {
+            display: flex;
+            flex-direction: row-reverse;
+            gap: 10px;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .game-main-area {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 6px;
+            width: 100%;
+            flex: 1;
+            overflow-y: auto;
+            align-content: start;
+            padding: 4px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            padding: 6px 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            overflow: hidden;
+            min-height: 0;
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+            border-color: #ffd700;
+        }
+
+        .card img {
+            width: 100%;
+            aspect-ratio: 1;
+            object-fit: cover;
+            border-radius: 6px;
+            margin-bottom: 4px;
+        }
+
+        .card span {
+            font-size: clamp(0.65rem, 1.8vw, 0.8rem);
+            font-weight: bold;
+            color: #fff;
+            white-space: normal;
+            overflow-wrap: break-word;
+            word-break: break-word;
+            width: 100%;
+            text-align: center;
+            line-height: 1.2;
+            min-height: 2.4em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* ====== نافذة التعليقات المستقلة ====== */
+        .live-comments-standalone {
+            width: 280px;
+            flex-shrink: 0;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid #38bdf8;
+            border-radius: 10px;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+        }
+
+        .live-comments-standalone.active {
+            display: flex;
+        }
+
+        .live-comments-title {
+            flex-shrink: 0;
+            padding: 8px 10px;
+            font-size: 0.95rem;
+            font-weight: 900;
+            color: #ffd700;
+            background: rgba(0,0,0,0.4);
+            border-bottom: 1px solid rgba(56,189,248,0.5);
+        }
+
+        .live-comments-list {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            padding: 7px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            scroll-behavior: smooth;
+        }
+
+        .live-comment {
+            display: flex;
+            align-items: flex-start;
+            gap: 7px;
+            padding: 6px 7px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.08);
+            text-align: right;
+        }
+
+        .live-comment-avatar {
+            width: 32px;
+            height: 32px;
+            flex: 0 0 32px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: #334155;
+            border: 1px solid rgba(255,255,255,0.25);
+        }
+
+        .live-comment-body {
+            min-width: 0;
+            flex: 1;
+        }
+
+        .live-comment-name {
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 900;
+            color: #00ffcc;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 1px;
+        }
+
+        .live-comment-text {
+            display: block;
+            font-size: 0.82rem;
+            line-height: 1.3;
+            color: #fff;
+            overflow-wrap: anywhere;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .modal-content {
+            position: relative;
+            width: 85%;
+            max-width: 420px;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+            animation: popIn 0.3s ease-out;
+        }
+
+        .modal-content img {
+            width: 100%;
+            display: block;
+        }
+
+        .player-name-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: clamp(1.5rem, 6vw, 2.2rem);
+            font-weight: 900;
+            color: #ffffff;
+            text-shadow: 0 0 10px #000, 0 0 20px #000, 2px 2px 4px #000;
+            text-align: center;
+            width: 85%;
+            word-wrap: break-word;
+        }
+
+        /* ====== نافذة الكشف مع صورة البروفيل ====== */
+        .reveal-with-avatar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+        }
+
+        .reveal-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #ffd700;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        }
+
+        .reveal-name {
+            font-size: clamp(1.5rem, 6vw, 2.5rem);
+            font-weight: 900;
+            color: #ffffff;
+            text-shadow: 0 0 10px #000, 0 0 20px #000, 2px 2px 4px #000;
+            text-align: center;
+        }
+
+        .winner-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.92);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        #confetti-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 2001;
+        }
+
+        .winner-card {
+            position: relative;
+            z-index: 2002;
+            background: linear-gradient(135deg, rgba(20, 30, 48, 0.95), rgba(36, 59, 85, 0.95));
+            border: 2px solid #ffd700;
+            padding: 35px 25px;
+            border-radius: 24px;
+            text-align: center;
+            box-shadow: 0 0 60px rgba(255, 215, 0, 0.5);
+            max-width: 420px;
+            width: 88%;
+            animation: bounceIn 0.6s ease;
+        }
+
+        .winner-icon {
+            font-size: 3.5rem;
+            margin-bottom: 10px;
+            animation: pulse 1.5s infinite;
+        }
+
+        .winner-card h2 {
+            font-size: 2.2rem;
+            color: #ffd700;
+            margin-bottom: 10px;
+            text-shadow: 0 0 15px rgba(255,215,0,0.6);
+        }
+
+        .winner-card p {
+            font-size: 1.35rem;
+            margin-bottom: 25px;
+            color: #ffffff;
+            font-weight: bold;
+        }
+
+        .btn-restart {
+            padding: 12px 35px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            background: linear-gradient(45deg, #ff4757, #ff6b81);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 5px 20px rgba(255, 71, 87, 0.5);
+            transition: 0.3s;
+        }
+
+        .btn-restart:hover {
+            transform: scale(1.08);
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.05); opacity: 1; }
+            70% { transform: scale(0.9); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+            100% { transform: scale(1); }
+        }
+
+        #welcome-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .welcome-badge { font-size: 3rem; animation: pulse 2s infinite; }
+        .welcome-title { font-size: clamp(1.6rem, 5vw, 2.5rem); font-weight: 900; color: #ffffff; text-shadow: 0 0 15px rgba(255, 215, 0, 0.4); line-height: 1.3; }
+        .welcome-subtitle { font-size: clamp(0.95rem, 3vw, 1.2rem); color: #00ffcc; font-weight: bold; }
+        .welcome-modes { display: flex; flex-direction: column; gap: 14px; width: 100%; max-width: 320px; margin-top: 10px; }
+        .btn-welcome-mode { padding: 14px 20px; font-size: 1.15rem; font-weight: 900; border-radius: 12px; border: 2px solid rgba(255,255,255,.3); cursor: pointer; background: linear-gradient(135deg,rgba(255,255,255,.2),rgba(255,255,255,.05)); color:#fff; box-shadow:0 4px 15px rgba(0,0,0,.2); transition:all .3s ease; display:flex; align-items:center; justify-content:center; gap:10px; }
+        .btn-welcome-mode:hover { transform:translateY(-3px); border-color:#ffd700; background:linear-gradient(135deg,#ffd700,#ff9f43); color:#000; box-shadow:0 6px 20px rgba(255,215,0,.4); }
+        #setup-screen { display:none; justify-content:flex-start; }
+        .mode-header-badge { background:rgba(0,0,0,.3); color:#00ffcc; padding:4px 12px; border-radius:20px; font-size:.85rem; font-weight:bold; margin-bottom:10px; border:1px solid #00ffcc; }
+        .btn-back-mode { background:transparent; color:#ffd700; border:none; cursor:pointer; font-weight:bold; font-size:.85rem; margin-top:8px; text-decoration:underline; }
+
+        .btn-return-turn {
+            margin-top: 8px;
+            padding: 10px 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            background: linear-gradient(45deg, #f59e0b, #fbbf24);
+            color: #000;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+
+        .btn-return-turn:hover {
+            transform: scale(1.05);
+        }
+
+        .btn-return-turn:disabled {
+            background: #666;
+            color: #aaa;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* ====== تخطيط الهاتف: التعليقات أسفل اللعبة ====== */
+        @media (max-width: 700px) {
+            .game-layout-wrapper {
+                flex-direction: column !important;
+            }
+
+            .live-comments-standalone {
+                width: 100% !important;
+                height: 200px !important;
+                flex-shrink: 0;
+            }
+
+            .grid-container {
+                grid-template-columns: repeat(5, 1fr);
+                gap: 4px;
+            }
+
+            .card {
+                padding: 3px 2px;
+            }
+
+            .card span {
+                font-size: clamp(0.55rem, 1.5vw, 0.7rem);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="welcome-screen">
+        <div class="welcome-badge">🎮💥</div>
+        <div class="welcome-title">مرحباً بكم في لعبة<br><span style="color: #ffd700;">اخطيني راني خاطيك</span></div>
+        <div class="welcome-subtitle">اختر نمط اللعب للبدء:</div>
+        <div class="welcome-modes">
+            <button class="btn-welcome-mode" onclick="selectGameMode('manual')"><span>🖐️</span><span>نمط يدوي</span></button>
+            <button class="btn-welcome-mode" onclick="selectGameMode('live')"><span>📡</span><span>TikTok LIVE</span></button>
+        </div>
+    </div>
+
+    <div class="container" id="setup-screen">
+        <h1 class="game-title">🎮 لعبة: اخطيني راني خاطيك 🎮</h1>
+        <div class="mode-header-badge" id="mode-badge">النمط المحدد: يدوي</div>
+        <div class="input-group">
+            <input type="text" id="player-name-input" placeholder="أدخل اسم اللاعب..." maxlength="20">
+            <button class="btn-add" id="action-btn" onclick="handlePrimaryAction()">إضافة</button>
+        </div>
+        <div class="input-group" id="keyword-group" style="display: none;">
+            <input type="text" id="join-keyword-input" placeholder="كلمة الدخول (مثال: اشترك)" value="تم" maxlength="15">
+        </div>
+        <div class="live-status" id="live-status" style="display: none;">حالة البث: غير متصل</div>
+        <div class="counter" id="player-counter">عدد اللاعبين: 0 / 30</div>
+        <div class="players-list-preview" id="players-preview"></div>
+        <div class="multiplier-section">
+            <h3>اختر الفرص (توزيع الأسماء خلف الصور):</h3>
+            <div class="multiplier-options">
+                <div><input type="radio" id="m1" name="multiplier" value="1" checked onclick="setMultiplier(1)"><label for="m1" class="radio-label" id="lbl-m1">×1</label></div>
+                <div><input type="radio" id="m2" name="multiplier" value="2" onclick="setMultiplier(2)"><label for="m2" class="radio-label disabled" id="lbl-m2">×2</label></div>
+                <div><input type="radio" id="m3" name="multiplier" value="3" onclick="setMultiplier(3)"><label for="m3" class="radio-label disabled" id="lbl-m3">×3</label></div>
+            </div>
+        </div>
+        <button class="btn-start" id="start-btn" onclick="startGame()" disabled>ابدأ اللعب 🚀</button>
+        <button class="btn-back-mode" onclick="backToWelcome()">🔄 تغيير النمط</button>
+    </div>
+
+    <div class="container" id="game-screen">
+        <div class="fixed-header">
+            <h1 class="game-title">اخطيني راني خاطيك</h1>
+            <div class="turn-indicator" id="turn-indicator">
+                <span>الدور الآن على اللاعب: ---</span>
+            </div>
+            
+            <div class="status-bar-row">
+                <select class="revealed-select-style" id="revealed-select">
+                    <option value="" disabled selected>👁️ (0)</option>
+                </select>
+
+                <select class="respawn-select-style" id="respawn-select" onchange="respawnPlayer(this.value)">
+                    <option value="" disabled selected>🔄 إعادة لاعب...</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="game-layout-wrapper" id="game-layout-wrapper">
+            <!-- اللعبة في اليمين (بسبب dir=rtl + flex-direction: row-reverse) -->
+            <div class="game-main-area" id="game-main-area">
+                <div class="grid-container" id="cards-grid"></div>
+                <button class="btn-return-turn" id="btn-return-turn" style="display:none;" onclick="returnTurnToLastRevealer()" disabled>
+                    🔄 إعادة الدور لآخر لاعب كشف صورة
+                </button>
+            </div>
+
+            <!-- التعليقات في اليسار - نافذة مستقلة -->
+            <div class="live-comments-standalone" id="live-comments-standalone">
+                <div class="live-comments-title">💬 تعليقات البث</div>
+                <div class="live-comments-list" id="live-comments-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="player-modal" onclick="closePlayerModal()">
+        <div class="modal-content">
+            <img src="https://i.postimg.cc/0y58bM0k/IMG-61d8d772-7275-4c2d-99fb-587e5a50125e.webp" alt="بطاقة اللاعب">
+            <div class="reveal-with-avatar" id="reveal-content">
+                <img class="reveal-avatar" id="reveal-avatar" src="" alt="" style="display:none;">
+                <div class="reveal-name" id="modal-player-name">اسم اللاعب</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="winner-modal" id="winner-modal">
+        <canvas id="confetti-canvas"></canvas>
+        <div class="winner-card">
+            <div class="winner-icon">👑🏆👑</div>
+            <h2>ألف مبروك الفوز!</h2>
+            <p id="winner-name-text">اللاعب الفائز هو: </p>
+            <button class="btn-restart" onclick="resetToSetup()">لعبة جديدة 🔄</button>
+        </div>
+    </div>
+
+    <script>
+        const gameImages = [
+            { name: "البلوط", url: "https://i.postimg.cc/jd4xxQN3/alblwt.webp" },
+            { name: "الترفاس", url: "https://i.postimg.cc/wTQqqcJC/altrfas.webp" },
+            { name: "الزعرور", url: "https://i.postimg.cc/287kkFvc/alzʿrwr.webp" },
+            { name: "السرو", url: "https://i.postimg.cc/W1p2hFwc/alsrw.webp" },
+            { name: "السكوم", url: "https://i.postimg.cc/ZKxbbFpm/alskwm.webp" },
+            { name: "الشيح", url: "https://i.postimg.cc/K8cZRkrw/alshyh.webp" },
+            { name: "الصنوبر", url: "https://i.postimg.cc/sD4jj97y/alsnwbr.webp" },
+            { name: "الضرو", url: "https://i.postimg.cc/DyPvvdL7/aldrw.webp" },
+            { name: "العرعر", url: "https://i.postimg.cc/5NS44qLc/alʿrʿr.webp" },
+            { name: "العسلوج", url: "https://i.postimg.cc/TYJddqmC/alʿslwj.webp" },
+            { name: "الفطر", url: "https://i.postimg.cc/YqzrrfYH/alftr.webp" },
+            { name: "القرنون", url: "https://i.postimg.cc/vHtYYL9X/alqrnwn.webp" },
+            { name: "القرنينة", url: "https://i.postimg.cc/QxJ88k5f/alqrnynt.webp" },
+            { name: "القسطل", url: "https://i.postimg.cc/DyPvvdL3/alqstl.webp" },
+            { name: "اللنج", url: "https://i.postimg.cc/tCNqqtPM/allnj.webp" },
+            { name: "النبق", url: "https://i.postimg.cc/L6399BfW/alnbq.webp" },
+            { name: "الحريقة", url: "https://i.postimg.cc/FsVrrg39/alhryqt.webp" },
+            { name: "بازلاء", url: "https://i.postimg.cc/T32RpLJR/bazlaʾ.webp" },
+            { name: "البصل", url: "https://i.postimg.cc/fRWwJtfN/bsl.jpg" },
+            { name: "البقدونس", url: "https://i.postimg.cc/sgfVvQ9k/bqdwns.webp" },
+            { name: "توت بري", url: "https://i.postimg.cc/4x4Jm7Q4/twt-bry.webp" },
+            { name: "تيزانة", url: "https://i.postimg.cc/yYy11X9r/tyzant.webp" },
+            { name: "التين", url: "https://i.postimg.cc/Z5YTCBxh/tyn.webp" },
+            { name: "التين الشوكي", url: "https://i.postimg.cc/7YnHHM08/tyn-shwky.webp" },
+            { name: "الثوم", url: "https://i.postimg.cc/7ZPxfGn8/thwm.webp" },
+            { name: "الزعيترة", url: "https://i.postimg.cc/qvBkzhxf/zʿytrt.webp" },
+            { name: "السفرجل", url: "https://i.postimg.cc/kgMnB6Fk/sfrjl-converti-depuis-jpg.webp" },
+            { name: "كرنب أحمر", url: "https://i.postimg.cc/x1j0cJ39/krnb-ahmr.webp" },
+            { name: "الليمون", url: "https://i.postimg.cc/P5ftPpQH/lymwn.webp" },
+            { name: "النعناع", url: "https://i.postimg.cc/8zk1jJmD/nʿnaʿ.webp" }
+        ];
+
+        let playerData = {};
+        let players = [];
+        let chosenMultiplier = 1;
+        let gameCards = [];
+        let activePlayersCount = {};
+        let revealedTracker = {}; 
+        let respawnedThisTurnTracker = {}; 
+        let currentPlayerTurn = "";
+        let winnerNameFound = null;
+        let nextCardId = 0;
+        let currentMode = 'manual';
+        let socket = null;
+        let lastRevealerName = null;
+        let isWaitingForComment = false;
+
+        try {
+            socket = io();
+        } catch(e) {
+            console.warn("Socket.io غير متصل حالياً.");
+        }
+
+        document.getElementById("player-name-input").addEventListener("keypress", function(event) {
+            if (event.key === "Enter") handlePrimaryAction();
+        });
+
+        function addPlayer() {
+            const input = document.getElementById("player-name-input");
+            const name = input.value.trim();
+
+            if (name === "") return;
+            if (players.includes(name)) {
+                alert("هذا الاسم موجود بالفعل!");
+                return;
+            }
+            if (players.length >= 30) {
+                alert("الحد الأقصى هو 30 لاعباً فقط!");
+                return;
+            }
+
+            players.push(name);
+            input.value = "";
+            updateUI();
+        }
+
+        function removePlayer(index) {
+            players.splice(index, 1);
+            updateUI();
+        }
+
+        function updateUI() {
+            const count = players.length;
+            document.getElementById("player-counter").innerText = `عدد اللاعبين: ${count} / 30`;
+
+            const preview = document.getElementById("players-preview");
+            preview.innerHTML = "";
+            players.forEach((p, index) => {
+                const playerInfo = playerData[p];
+                const avatarUrl = playerInfo ? avatarSrc(playerInfo.avatar, playerInfo.avatarKey) : '';
+                
+                const tag = document.createElement('div');
+                tag.className = 'player-tag';
+                
+                if (avatarUrl && currentMode === 'live') {
+                    const img = document.createElement('img');
+                    img.className = 'player-avatar-small';
+                    img.src = avatarUrl;
+                    img.onerror = () => img.style.display = 'none';
+                    tag.appendChild(img);
+                }
+                
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = p;
+                tag.appendChild(nameSpan);
+                
+                const removeSpan = document.createElement('span');
+                removeSpan.textContent = '×';
+                removeSpan.onclick = () => removePlayer(index);
+                tag.appendChild(removeSpan);
+                
+                preview.appendChild(tag);
+            });
+
+            const m1 = document.getElementById("m1");
+            const m2 = document.getElementById("m2");
+            const m3 = document.getElementById("m3");
+            const lblM2 = document.getElementById("lbl-m2");
+            const lblM3 = document.getElementById("lbl-m3");
+
+            if (count > 15) {
+                m1.checked = true;
+                chosenMultiplier = 1;
+                m2.disabled = true;
+                m3.disabled = true;
+                lblM2.classList.add("disabled");
+                lblM3.classList.add("disabled");
+            } else if (count > 10 && count <= 15) {
+                m2.disabled = false;
+                lblM2.classList.remove("disabled");
+                m3.disabled = true;
+                lblM3.classList.add("disabled");
+                if (chosenMultiplier === 3) {
+                    m1.checked = true;
+                    chosenMultiplier = 1;
+                }
+            } else if (count <= 10 && count > 0) {
+                m2.disabled = false;
+                m3.disabled = false;
+                lblM2.classList.remove("disabled");
+                lblM3.classList.remove("disabled");
+            }
+
+            document.getElementById("start-btn").disabled = count < 2;
+        }
+
+        function selectGameMode(mode) {
+            currentMode = mode;
+            document.getElementById("welcome-screen").style.display = "none";
+            document.getElementById("setup-screen").style.display = "flex";
+            const input = document.getElementById("player-name-input");
+            const actionBtn = document.getElementById("action-btn");
+            const liveStatus = document.getElementById("live-status");
+            const keywordGroup = document.getElementById("keyword-group");
+            const modeBadge = document.getElementById("mode-badge");
+            
+            if (mode === 'manual') {
+                setLiveCommentsVisible(false);
+                modeBadge.innerText = "النمط المحدد: 🖐️ يدوي";
+                input.placeholder = "أدخل اسم اللاعب...";
+                actionBtn.innerText = "إضافة";
+                liveStatus.style.display = "none";
+                keywordGroup.style.display = "none";
+            } else {
+                modeBadge.innerText = "النمط المحدد: 📡 TikTok LIVE";
+                input.placeholder = "@اسم_حساب_تيكتوك";
+                actionBtn.innerText = "ربط البث";
+                liveStatus.style.display = "block";
+                keywordGroup.style.display = "flex";
+                initLiveSocket();
+            }
+        }
+
+        function backToWelcome() {
+            players = [];
+            playerData = {};
+            updateUI();
+            document.getElementById("setup-screen").style.display = "none";
+            document.getElementById("game-screen").style.display = "none";
+            document.getElementById("welcome-screen").style.display = "flex";
+        }
+
+        function handlePrimaryAction() {
+            if (currentMode === 'manual') addPlayer();
+            else connectToLiveStream();
+        }
+
+        function initLiveSocket() {
+            if (!socket) return;
+            
+            socket.on("connect", () => {
+                console.log('Socket.IO متصل بالسيرفر');
+            });
+
+            socket.on("disconnect", () => {
+                const status = document.getElementById("live-status");
+                if (status) {
+                    status.innerText = "حالة البث: انقطع الاتصال بالسيرفر";
+                }
+            });
+
+            socket.on("connect_error", (err) => {
+                console.error('Socket.IO error:', err);
+                const status = document.getElementById("live-status");
+                if (status) {
+                    status.innerText = "حالة البث: تعذر الاتصال بالسيرفر";
+                }
+            });
+
+            socket.on("tiktok-status", (data) => {
+                const status = document.getElementById("live-status");
+                if (!status) return;
+
+                if (data.success) {
+                    status.innerText = data.message || "حالة البث: متصل 🔴";
+                    status.style.color = "#10b981";
+                } else {
+                    status.innerText = data.message || "حالة البث: غير متصل";
+                    status.style.color = "#ffd700";
+                }
+            });
+
+            socket.on("tiktok-disconnected", (data) => {
+                const status = document.getElementById("live-status");
+                if (status) {
+                    status.innerText = data?.message || "حالة البث: تم قطع الاتصال ⚪";
+                    status.style.color = "#ef4444";
+                }
+            });
+
+            socket.on("tiktok-chat", (data) => {
+                if (currentMode !== 'live') return;
+
+                const uniqueId = String(data?.uniqueId || '').trim().replace(/^@/, '');
+                const userId = String(data?.userId || '').trim();
+                const nickname = String(data?.nickname || uniqueId || userId || 'مستخدم').trim();
+                const comment = String(data?.comment || '').trim();
+                const profilePictureUrl = data?.profilePictureUrl || '';
+                const avatarKeyValue = String(data?.avatarKey || uniqueId || userId || '').trim().replace(/^@/, '').toLowerCase();
+
+                addLiveComment({
+                    nickname,
+                    comment,
+                    avatar: avatarSrc(profilePictureUrl, avatarKeyValue)
+                });
+
+                const playerKey = nickname || uniqueId || userId;
+                if (!playerData[playerKey]) {
+                    playerData[playerKey] = {
+                        avatar: profilePictureUrl,
+                        avatarKey: avatarKeyValue,
+                        uniqueId,
+                        userId
+                    };
+                } else {
+                    if (profilePictureUrl) playerData[playerKey].avatar = profilePictureUrl;
+                    if (avatarKeyValue) playerData[playerKey].avatarKey = avatarKeyValue;
+                }
+
+                const keyword = document.getElementById("join-keyword-input").value.trim().toLowerCase();
+                const normalizedComment = normalizeChatText(comment);
+
+                if (keyword && normalizedComment === keyword.toLowerCase()) {
+                    if (!players.includes(playerKey) && players.length < 30) {
+                        players.push(playerKey);
+                        updateUI();
+                        console.log('[PLAYER JOINED]', playerKey);
+                    }
+                }
+
+                // ====== منطق اللعب الآلي: أي لاعب يكتب اسم صورة يكشفها ======
+                if (currentMode === 'live' && document.getElementById("game-screen").style.display === "flex" && !winnerNameFound) {
+                    handleLiveCommentForReveal(playerKey, comment, normalizedComment);
+                }
+            });
+
+            socket.on("tiktok-member-event", (data) => {
+                if (currentMode !== 'live') return;
+                console.log('[MEMBER EVENT]', data);
+            });
+        }
+
+        // ====== منطق كشف الصور في النمط الآلي - أي لاعب يكتب اسم صورة ======
+        function handleLiveCommentForReveal(playerName, comment, normalizedComment) {
+            const unrevealedCards = gameCards.filter(c => !c.revealed);
+            if (unrevealedCards.length === 0) return;
+
+            for (const card of unrevealedCards) {
+                const normalizedCardName = normalizeChatText(card.imgName);
+                
+                if (normalizedComment === normalizedCardName || 
+                    comment.includes(card.imgName) ||
+                    normalizedComment.includes(normalizedCardName)) {
+                    
+                    // وجدنا تطابق! نكشف الصورة
+                    revealCard(card.id);
+                    return;
+                }
+            }
+        }
+
+        function addLiveComment(data) {
+            if (currentMode !== 'live') return;
+            const list = document.getElementById("live-comments-list");
+            if (!list) return;
+
+            const row = document.createElement("div");
+            row.className = "live-comment";
+
+            const avatar = document.createElement("img");
+            avatar.className = "live-comment-avatar";
+            avatar.alt = "";
+            avatar.src = data.avatar || "";
+            avatar.onerror = function() { this.style.visibility = "hidden"; };
+
+            const body = document.createElement("div");
+            body.className = "live-comment-body";
+
+            const name = document.createElement("span");
+            name.className = "live-comment-name";
+            name.textContent = data.nickname || "مستخدم";
+
+            const text = document.createElement("span");
+            text.className = "live-comment-text";
+            text.textContent = data.comment || "";
+
+            body.appendChild(name);
+            body.appendChild(text);
+            row.appendChild(avatar);
+            row.appendChild(body);
+            list.appendChild(row);
+
+            while (list.children.length > 100) list.removeChild(list.firstChild);
+            list.scrollTop = list.scrollHeight;
+        }
+
+        function clearLiveComments() {
+            const list = document.getElementById("live-comments-list");
+            if (list) list.innerHTML = "";
+        }
+
+        function setLiveCommentsVisible(visible) {
+            const panel = document.getElementById("live-comments-standalone");
+            if (panel) panel.classList.toggle('active', visible);
+        }
+
+        function connectToLiveStream() {
+            let username = document.getElementById("player-name-input").value.trim();
+            
+            if (!username) {
+                alert('أدخل يوزر التيكتوك!');
+                return;
+            }
+
+            username = username
+                .replace(/^https?:\/\/(www\.)?tiktok\.com\/@?/i, '')
+                .split(/[/?#]/)[0]
+                .replace(/^@/, '')
+                .trim();
+
+            if (!username) {
+                alert('يوزر تيكتوك غير صالح!');
+                return;
+            }
+
+            document.getElementById("player-name-input").value = username;
+
+            if (!socket || !socket.connected) {
+                document.getElementById("live-status").innerText = "السيرفر غير متصل. أعد تحميل الصفحة.";
+                return;
+            }
+
+            clearLiveComments();
+            socket.emit('connect-tiktok', { uniqueId: username });
+        }
+
+        function avatarSrc(url, key) {
+            const avatarKeyValue = String(key || '').trim();
+            if (avatarKeyValue) return `/avatar?id=${encodeURIComponent(avatarKeyValue)}`;
+            const directUrl = String(url || '').trim();
+            return /^https?:\/\//i.test(directUrl) ? directUrl : '';
+        }
+
+        function normalizeChatText(value) {
+            return String(value ?? '')
+                .replace(/[\u0640]/g, '')
+                .replace(/[\u200B-\u200D\uFEFF]/g, '')
+                .replace(/\s+/g, ' ')
+                .trim()
+                .toLocaleLowerCase('ar');
+        }
+
+        function setMultiplier(val) {
+            chosenMultiplier = val;
+        }
+
+        function shuffle(array) {
+            let arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function startGame() {
+            winnerNameFound = null;
+            nextCardId = 0;
+            lastRevealerName = null;
+            isWaitingForComment = false;
+            const totalCardsNeeded = players.length * chosenMultiplier;
+            let assignedNames = [];
+            activePlayersCount = {};
+            revealedTracker = {};
+            respawnedThisTurnTracker = {};
+
+            players.forEach(p => {
+                activePlayersCount[p] = chosenMultiplier;
+                revealedTracker[p] = 0;
+                respawnedThisTurnTracker[p] = false;
+                for (let i = 0; i < chosenMultiplier; i++) {
+                    assignedNames.push(p);
+                }
+            });
+
+            assignedNames = shuffle(assignedNames);
+            let selectedImages = shuffle([...gameImages]).slice(0, totalCardsNeeded);
+
+            gameCards = selectedImages.map((img) => {
+                return {
+                    id: nextCardId++,
+                    imgName: img.name,
+                    imgUrl: img.url,
+                    playerName: assignedNames.shift(),
+                    revealed: false
+                };
+            });
+
+            document.getElementById("setup-screen").style.display = "none";
+            document.getElementById("game-screen").style.display = "flex";
+            setLiveCommentsVisible(currentMode === "live");
+            if (currentMode === 'live') clearLiveComments();
+
+            // النمط الآلي: أي لاعب يبدأ أولاً
+            currentPlayerTurn = "";
+            
+            updateTurnIndicator();
+            updateStatusBar();
+            renderCards();
+            updateReturnTurnButton();
+        }
+
+        function updateTurnIndicator() {
+            const indicator = document.getElementById("turn-indicator");
+            
+            if (currentMode === 'live' && !currentPlayerTurn) {
+                indicator.innerHTML = `<span>🎮 أي لاعب يكتب اسم صورة يكشفها!</span>`;
+                return;
+            }
+            
+            const playerInfo = playerData[currentPlayerTurn];
+            const avatarUrl = playerInfo ? avatarSrc(playerInfo.avatar, playerInfo.avatarKey) : '';
+            
+            let html = '';
+            if (avatarUrl && currentMode === 'live') {
+                html += `<img class="turn-player-avatar" src="${avatarUrl}" onerror="this.style.display='none'">`;
+            }
+            html += `<span>الدور الآن على اللاعب: ${currentPlayerTurn || '---'}</span>`;
+            
+            indicator.innerHTML = html;
+        }
+
+        function updateStatusBar() {
+            const revealedNames = Object.keys(revealedTracker).filter(p => revealedTracker[p] > 0);
+
+            const revealedSelect = document.getElementById("revealed-select");
+            revealedSelect.innerHTML = `<option value="" disabled selected>👁️ (${revealedNames.length})</option>`;
+            
+            revealedNames.forEach(p => {
+                const count = revealedTracker[p];
+                const tag = ` (ظهر ×${count})`;
+                revealedSelect.innerHTML += `<option disabled>${p}${tag}</option>`;
+            });
+
+            const respawnSelect = document.getElementById("respawn-select");
+            respawnSelect.innerHTML = `<option value="" disabled selected>🔄 إعادة لاعب...</option>`;
+            
+            revealedNames.forEach(p => {
+                const isFullyOut = (revealedTracker[p] === chosenMultiplier);
+                const isNotRespawnedYet = !respawnedThisTurnTracker[p];
+                const canRespawn = isFullyOut && isNotRespawnedYet;
+
+                if (canRespawn) {
+                    respawnSelect.innerHTML += `<option value="${p}" class="available">✅ ${p} (متاح للإعادة)</option>`;
+                } else if (!isFullyOut) {
+                    respawnSelect.innerHTML += `<option value="${p}" class="unavailable">❌ ${p} (لم يخرج بعد ×${revealedTracker[p]}/${chosenMultiplier})</option>`;
+                } else {
+                    respawnSelect.innerHTML += `<option value="${p}" class="unavailable">❌ ${p} (أُعيد سابقاً)</option>`;
+                }
+            });
+        }
+
+        function renderCards() {
+            const grid = document.getElementById("cards-grid");
+            grid.innerHTML = "";
+
+            gameCards.forEach(card => {
+                if (!card.revealed) {
+                    grid.innerHTML += `
+                        <div class="card" onclick="revealCard(${card.id})">
+                            <img src="${card.imgUrl}" alt="${card.imgName}">
+                            <span>${card.imgName}</span>
+                        </div>
+                    `;
+                } else {
+                    grid.innerHTML += `
+                        <div class="card" style="visibility: hidden; pointer-events: none;"></div>
+                    `;
+                }
+            });
+        }
+
+        function revealCard(cardId) {
+            const card = gameCards.find(c => c.id === cardId);
+            if (!card || card.revealed) return;
+
+            respawnedThisTurnTracker = {};
+
+            card.revealed = true;
+            revealedTracker[card.playerName] = (revealedTracker[card.playerName] || 0) + 1;
+            
+            // تسجيل آخر لاعب كشف صورة (لزر إعادة الدور)
+            lastRevealerName = currentPlayerTurn || lastRevealerName;
+            
+            // الدور ينتقل للاعب الذي كُشف اسمه في الصورة
+            currentPlayerTurn = card.playerName;
+
+            // عرض النافذة مع صورة البروفيل
+            showRevealModal(card.playerName);
+
+            if (activePlayersCount[card.playerName]) {
+                activePlayersCount[card.playerName]--;
+                if (activePlayersCount[card.playerName] === 0) {
+                    delete activePlayersCount[card.playerName];
+                }
+            }
+
+            updateStatusBar();
+            updateReturnTurnButton();
+
+            const remainingPlayers = Object.keys(activePlayersCount);
+
+            if (remainingPlayers.length === 1 && !winnerNameFound) {
+                winnerNameFound = remainingPlayers[0];
+            }
+        }
+
+        function showRevealModal(playerName) {
+            const modalName = document.getElementById("modal-player-name");
+            const modalAvatar = document.getElementById("reveal-avatar");
+            const playerInfo = playerData[playerName];
+            
+            modalName.innerText = playerName;
+            
+            if (playerInfo && currentMode === 'live') {
+                const avatarUrl = avatarSrc(playerInfo.avatar, playerInfo.avatarKey);
+                if (avatarUrl) {
+                    modalAvatar.src = avatarUrl;
+                    modalAvatar.style.display = "block";
+                    modalAvatar.onerror = () => {
+                        modalAvatar.style.display = "none";
+                    };
+                } else {
+                    modalAvatar.style.display = "none";
+                }
+            } else {
+                modalAvatar.style.display = "none";
+            }
+            
+            document.getElementById("player-modal").style.display = "flex";
+        }
+
+        function closePlayerModal() {
+            document.getElementById("player-modal").style.display = "none";
+
+            const unrevealedCardsCount = gameCards.filter(c => !c.revealed).length;
+            
+            if (unrevealedCardsCount === 0 && winnerNameFound) {
+                showWinner(winnerNameFound);
+            } else {
+                updateTurnIndicator();
+                renderCards();
+                updateReturnTurnButton();
+            }
+        }
+
+        function updateReturnTurnButton() {
+            const btn = document.getElementById("btn-return-turn");
+            if (!btn) return;
+            
+            if (currentMode === 'live' && lastRevealerName && lastRevealerName !== currentPlayerTurn && activePlayersCount[lastRevealerName] !== undefined) {
+                btn.style.display = "block";
+                btn.disabled = false;
+                btn.innerText = `🔄 إعادة الدور لـ ${lastRevealerName}`;
+            } else {
+                btn.style.display = "none";
+                btn.disabled = true;
+            }
+        }
+
+        function returnTurnToLastRevealer() {
+            if (!lastRevealerName || activePlayersCount[lastRevealerName] === undefined) return;
+            
+            currentPlayerTurn = lastRevealerName;
+            updateTurnIndicator();
+            updateReturnTurnButton();
+        }
+
+        function respawnPlayer(playerName) {
+            if (!playerName) return;
+
+            const currentRevealed = revealedTracker[playerName] || 0;
+            const isFullyOut = (currentRevealed === chosenMultiplier);
+
+            if (!isFullyOut) {
+                alert(`⚠️ لا يمكن إعادة اللاعب [ ${playerName} ] لأنه لم يستنفذ جميع فرصه بعد!\n(ظهر ${currentRevealed} من أصل ${chosenMultiplier})`);
+                document.getElementById("respawn-select").value = "";
+                return;
+            }
+
+            if (respawnedThisTurnTracker[playerName]) {
+                alert(`⚠️ لقد تم إعادة اللاعب [ ${playerName} ] بالفعل مرة واحدة ولا يمكن إرجاعه مجدداً في هذا الدور!`);
+                document.getElementById("respawn-select").value = "";
+                return;
+            }
+
+            const activeImageNames = gameCards.filter(c => !c.revealed).map(c => c.imgName);
+            const availableImagesPool = gameImages.filter(img => !activeImageNames.includes(img.name));
+
+            if (availableImagesPool.length === 0) {
+                alert("⚠️ لا توجد صور إضافية متوفرة في الألبوم لإعادة اللاعب!");
+                document.getElementById("respawn-select").value = "";
+                return;
+            }
+
+            const randomNewImage = availableImagesPool[Math.floor(Math.random() * availableImagesPool.length)];
+
+            activePlayersCount[playerName] = 1;
+            respawnedThisTurnTracker[playerName] = true;
+            winnerNameFound = null; 
+
+            const newCard = {
+                id: nextCardId++,
+                imgName: randomNewImage.name,
+                imgUrl: randomNewImage.url,
+                playerName: "",
+                revealed: false
+            };
+            gameCards.push(newCard);
+
+            let unrevealedCards = gameCards.filter(c => !c.revealed);
+            let currentNamesPool = [];
+            Object.keys(activePlayersCount).forEach(p => {
+                const count = activePlayersCount[p];
+                for (let i = 0; i < count; i++) {
+                    currentNamesPool.push(p);
+                }
+            });
+
+            let assignedSuccessfully = false;
+            let attempts = 0;
+
+            while (!assignedSuccessfully && attempts < 100) {
+                attempts++;
+                let shuffledNames = shuffle([...currentNamesPool]);
+                let tempMap = {};
+                let validAssignment = true;
+
+                for (let i = 0; i < unrevealedCards.length; i++) {
+                    const card = unrevealedCards[i];
+                    const assignedPlayer = shuffledNames[i];
+
+                    if (card.imgName === randomNewImage.name && assignedPlayer === playerName) {
+                        validAssignment = false;
+                        break;
+                    }
+                    tempMap[card.id] = assignedPlayer;
+                }
+
+                if (validAssignment) {
+                    gameCards.forEach(c => {
+                        if (!c.revealed) {
+                            c.playerName = tempMap[c.id];
+                        }
+                    });
+                    assignedSuccessfully = true;
+                }
+            }
+
+            let currentUnrevealed = gameCards.filter(c => !c.revealed);
+            currentUnrevealed = shuffle(currentUnrevealed);
+
+            let unrevealedIndex = 0;
+            gameCards = gameCards.map(c => {
+                if (!c.revealed) {
+                    return currentUnrevealed[unrevealedIndex++];
+                }
+                return c;
+            });
+
+            document.getElementById("respawn-select").value = "";
+            alert(`✅ تم إرجاع اللاعب [ ${playerName} ] وإضافة صورة جديدة [ ${randomNewImage.name} ] وإعادة توزيع الأسماء عشوائياً بسريّة تامة!`);
+            updateStatusBar();
+            renderCards();
+        }
+
+        let confettiAnimationId = null;
+        function startConfetti() {
+            const canvas = document.getElementById("confetti-canvas");
+            const ctx = canvas.getContext("2d");
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const particles = [];
+            const colors = ['#ffd700', '#ff4757', '#00ffcc', '#2ed573', '#1e90ff', '#ffffff'];
+
+            for (let i = 0; i < 150; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height - canvas.height,
+                    size: Math.random() * 8 + 4,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    speedY: Math.random() * 3 + 2,
+                    speedX: Math.random() * 2 - 1,
+                    spin: Math.random() * 360
+                });
+            }
+
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                particles.forEach(p => {
+                    p.y += p.speedY;
+                    p.x += p.speedX;
+                    p.spin += 5;
+
+                    if (p.y > canvas.height) {
+                        p.y = -10;
+                        p.x = Math.random() * canvas.width;
+                    }
+
+                    ctx.save();
+                    ctx.translate(p.x, p.y);
+                    ctx.rotate((p.spin * Math.PI) / 180);
+                    ctx.fillStyle = p.color;
+                    ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+                    ctx.restore();
+                });
+                confettiAnimationId = requestAnimationFrame(animate);
+            }
+            animate();
+        }
+
+        function showWinner(winnerName) {
+            document.getElementById("winner-name-text").innerText = `🏆 الفائز هو: ${winnerName} 🏆`;
+            document.getElementById("winner-modal").style.display = "flex";
+            startConfetti();
+        }
+
+        function resetToSetup() {
+            if (confettiAnimationId) cancelAnimationFrame(confettiAnimationId);
+            
+            players = [];
+            playerData = {};
+            gameCards = [];
+            activePlayersCount = {};
+            revealedTracker = {};
+            respawnedThisTurnTracker = {};
+            chosenMultiplier = 1;
+            winnerNameFound = null;
+            nextCardId = 0;
+            lastRevealerName = null;
+            isWaitingForComment = false;
+
+            document.getElementById("winner-modal").style.display = "none";
+            document.getElementById("game-screen").style.display = "none";
+            setLiveCommentsVisible(false);
+            clearLiveComments();
+            document.getElementById("setup-screen").style.display = "flex";
+
+            document.getElementById("m1").checked = true;
+            updateUI();
+        }
+    </script>
+</body>
+</html>
