@@ -1,0 +1,14 @@
+{
+  "name": "ekhtini-rani-khateek",
+  "version": "1.0.0",
+  "description": "اخطيني راني خاطيك - نمط يدوي وTikTok LIVE",
+  "type": "module",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "dependencies": {
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1",
+    "tiktok-live-connector": "2.4.4"
+  },
+  "engines": { "node": ">=18.18.0" }
+}
